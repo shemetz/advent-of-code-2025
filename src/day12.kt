@@ -37,28 +37,60 @@ fun main() {
         Field(dimensions[0], dimensions[1], requirements)
     }
 
-    // first, let's try to pack 1 of every shape into as small of a space as possible.
-    // each shape fits in a 3x3 so we know it's always possible in these space sizes:
-    // - 9x6 (two rows of three shapes each)
-    // - 18x3 (one row of six shapes)
-    // - 15x3 (more cleverly packed row of six shapes)
-    // (those will be the maximum sizes)
-    // and we know the minimum "size" (total area) is a perfect packing, we'll add up areas for that
-    val minimumAreaForPacking = shapes.sumOf { it.area }
-    val maximumAreaForPacking = 9 * 6
-    println("Minimum area to pack all shapes: $minimumAreaForPacking")
-    // NOTE:  I'm limiting myself to rect packings, not gonna bother with tilings even though they likely help
-    // NOTE: to reduce permutation count, limit to width >= height
-    val possiblePackings: List<NDArray<Int, D2>> = emptyList()
-    for (width in 5..13) {
-        for (height in 3..6) {
-            val area = width * height
-            if (area < minimumAreaForPacking) continue
-            if (area > maximumAreaForPacking) continue
-            if (height > width) continue
-            // try to pack shapes into width x height
-            val fieldArray = mk.d2array(height, width) { false }
-            shapes.for
+//    // first, let's try to pack 1 of every shape into as small of a space as possible.
+//    // each shape fits in a 3x3 so we know it's always possible in these space sizes:
+//    // - 9x6 (two rows of three shapes each)
+//    // - 18x3 (one row of six shapes)
+//    // - 15x3 (more cleverly packed row of six shapes)
+//    // (those will be the maximum sizes)
+//    // and we know the minimum "size" (total area) is a perfect packing, we'll add up areas for that
+//    val minimumAreaForPacking = shapes.sumOf { it.area }
+//    val maximumAreaForPacking = 9 * 6
+//    println("Minimum area to pack all shapes: $minimumAreaForPacking")
+//    // NOTE:  I'm limiting myself to rect packings, not gonna bother with tilings even though they likely help
+//    // NOTE: to reduce permutation count, limit to width >= height
+//    val possiblePackings: List<NDArray<Int, D2>> = emptyList()
+//    for (width in 5..13) {
+//        for (height in 3..6) {
+//            val area = width * height
+//            if (area < minimumAreaForPacking) continue
+//            if (area > maximumAreaForPacking) continue
+//            if (height > width) continue
+//            // try to pack shapes into width x height
+//            val fieldArray = mk.d2array(height, width) { false }
+//            shapes.for
+//        }
+//    }
+
+    var fields = allFields
+    println("fields to test: ${fields.size}")
+    var doableFieldCount = 0
+    // filter out fields that can't possibly fit the required shapes by area
+    fields = fields.filter { field ->
+        val totalRequiredArea = field.requirements.withIndex().sumOf { (shapeIndex, count) ->
+            shapes[shapeIndex].area * count
         }
+        val fieldArea = field.width * field.height
+        totalRequiredArea <= fieldArea
     }
+    println("count after removing impossible area totals: ${fields.size}")
+    fields = fields.filter { field ->
+        // "filter in" fields that can definitely fit the shapes by greedily placing them all in 3x3 areas
+        val thirdOfWidth = field.width / 3
+        val thirdOfHeight = field.height / 3
+        val easilyAvailableShapeCount = thirdOfWidth * thirdOfHeight
+        val totalRequiredShapes = field.requirements.sum()
+        if (easilyAvailableShapeCount >= totalRequiredShapes) {
+            doableFieldCount += 1
+            false
+        } else
+            true
+    }
+    println("count after removing easy fields: ${fields.size}  (easy: $doableFieldCount)")
+
+
+
+
+    println("Part 1: $")  //
+    println("Part 2: $")  //
 }
