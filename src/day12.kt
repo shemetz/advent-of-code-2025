@@ -1,11 +1,3 @@
-import org.jetbrains.kotlinx.multik.api.d2array
-import org.jetbrains.kotlinx.multik.api.mk
-import org.jetbrains.kotlinx.multik.ndarray.data.D2
-import org.jetbrains.kotlinx.multik.ndarray.data.NDArray
-import org.jetbrains.kotlinx.multik.ndarray.data.get
-import org.jetbrains.kotlinx.multik.ndarray.data.set
-import org.jetbrains.kotlinx.multik.ndarray.operations.map
-import org.jetbrains.kotlinx.multik.ndarray.operations.sumBy
 import java.io.File
 
 data class Field(
@@ -14,83 +6,31 @@ data class Field(
     val requirements: List<Int>, // count per shape index
 )
 
-data class Shape(
-    val pattern: NDArray<Int, D2>, // 3x3 array of 1s and 0s
-    val area: Int, // number of true cells
-)
-
-
 fun main() {
     val lines = File("src/input.txt").readLines()
-    // there are 6 shapes, each of them take 1 line (index), then 3 lines to define, then a blank line
-    val shapes = lines.take(6 * 5).chunked(5).map { shapeLines ->
-        val shapeArray = mk.d2array<Int>(3, 3) { 1 }
-        for (r in 0..<3)
-            for (c in 0..<3) {
-                shapeArray[r, c] = if (shapeLines[r + 1][c] == '#') 1 else 0
-            }
-        Shape(shapeArray, mk.math.sum(shapeArray))
+    // there are 6 shapes, each of them take 1 line (index), then 3 lines to define, then 1 blank line
+    val shapeAreas = lines.take(6 * 5).chunked(5).map { shapeLines ->
+        shapeLines.sumOf { line -> line.count { c -> c == '#' } }
     }
-    val allFields = lines.drop(6 * 5).map { line ->
-        val dimensions = line.split(":")[0].split("x").map(String::toInt)
+    val answer = lines.drop(6 * 5).count { line ->
+        val (width, height) = line.split(":")[0].split("x").map(String::toInt)
         val requirements = line.split(":")[1].trim().split(" ").map(String::toInt)
-        Field(dimensions[0], dimensions[1], requirements)
-    }
-
-//    // first, let's try to pack 1 of every shape into as small of a space as possible.
-//    // each shape fits in a 3x3 so we know it's always possible in these space sizes:
-//    // - 9x6 (two rows of three shapes each)
-//    // - 18x3 (one row of six shapes)
-//    // - 15x3 (more cleverly packed row of six shapes)
-//    // (those will be the maximum sizes)
-//    // and we know the minimum "size" (total area) is a perfect packing, we'll add up areas for that
-//    val minimumAreaForPacking = shapes.sumOf { it.area }
-//    val maximumAreaForPacking = 9 * 6
-//    println("Minimum area to pack all shapes: $minimumAreaForPacking")
-//    // NOTE:  I'm limiting myself to rect packings, not gonna bother with tilings even though they likely help
-//    // NOTE: to reduce permutation count, limit to width >= height
-//    val possiblePackings: List<NDArray<Int, D2>> = emptyList()
-//    for (width in 5..13) {
-//        for (height in 3..6) {
-//            val area = width * height
-//            if (area < minimumAreaForPacking) continue
-//            if (area > maximumAreaForPacking) continue
-//            if (height > width) continue
-//            // try to pack shapes into width x height
-//            val fieldArray = mk.d2array(height, width) { false }
-//            shapes.for
-//        }
-//    }
-
-    var fields = allFields
-    println("fields to test: ${fields.size}")
-    var doableFieldCount = 0
-    // filter out fields that can't possibly fit the required shapes by area
-    fields = fields.filter { field ->
-        val totalRequiredArea = field.requirements.withIndex().sumOf { (shapeIndex, count) ->
-            shapes[shapeIndex].area * count
+        val totalRequiredArea = requirements.withIndex().sumOf { (shapeIndex, count) ->
+            shapeAreas[shapeIndex] * count
         }
-        val fieldArea = field.width * field.height
-        totalRequiredArea <= fieldArea
+        val totalAvailableArea = width * height
+        if (totalRequiredArea > totalAvailableArea) {
+            return@count false
+        }
+        val numOfAvailable3x3Spots = (width / 3) * (height / 3)
+        val numOf3x3SpotsNeededForEasyFit = requirements.sum()
+        if (numOf3x3SpotsNeededForEasyFit <= numOfAvailable3x3Spots)
+            return@count true
+        error("this error won't happen, no difficult cases exist in the input...")
     }
-    println("count after removing impossible area totals: ${fields.size}")
-    fields = fields.filter { field ->
-        // "filter in" fields that can definitely fit the shapes by greedily placing them all in 3x3 areas
-        val thirdOfWidth = field.width / 3
-        val thirdOfHeight = field.height / 3
-        val easilyAvailableShapeCount = thirdOfWidth * thirdOfHeight
-        val totalRequiredShapes = field.requirements.sum()
-        if (easilyAvailableShapeCount >= totalRequiredShapes) {
-            doableFieldCount += 1
-            false
-        } else
-            true
-    }
-    println("count after removing easy fields: ${fields.size}  (easy: $doableFieldCount)")
-
-
-
-
-    println("Part 1: $")  //
-    println("Part 2: $")  //
+    // ...it's that easy.
+    // literally every field in the input is either obviously impossible (by area count) or obviously possible (by placing every shape in its own 3x3).
+    // wtf, advent of code?  why is it so easy?
+    // I am disappointed.
+    println("Part 1 and only: $answer")  // 526
 }
